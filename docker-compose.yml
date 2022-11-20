@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  proxy:
+    image: nginx
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./proxy/templates/:/etc/nginx/templates/
+    ports:
+      - "80:80"
+  frontend:
+    build:
+      context: ./frontend
+      target: PROD
+
+  mongodb:
+    image: mongo:5.0.2
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $MONGODB_LOCAL_PORT:$MONGODB_DOCKER_PORT
+    environment:
+      MONGO_INITDB_DATABASE: 'user'
+    volumes:
+      - db:/data/db
+  backend:
+    depends_on:
+      - mongodb
+    build: 
+      context: ./backend
+      target: PROD
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - DB_NAME=$MONGODB_DATABASE
+      - DB_PORT=$MONGODB_DOCKER_PORT
+    stdin_open: true
+    tty: true
+
+volumes:
+  db:
